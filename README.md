@@ -198,5 +198,30 @@ export default {
 
 ---
 
+## Roadmap
+
+DataGuardian için planlanan geliştirmeler ve hedefler:
+
+### v1.0 (Mevcut)
+- [x] Kural tabanlı PII tespitleri (T.C. kimlik numarası, IBAN, kredi kartı, e-posta, telefon, tarih, adres)
+- [x] Risk skorlaması (0–10) ve header üretimi (`X-DataGuardian-*`)
+- [x] Aksiyon modları: **Tag**, **Redact**, **Block**
+- [x] Konfigürasyon: path/method filtreleri, entity include/exclude, redaksiyon stili
+- [x] Opsiyonel NER entegrasyonu (ONNX)
+
+### v2.0 (Kısa vadeli hedeflenen)
+- [ ] Edge (Cloudflare) snippet için logging ve metric forwarding
+- [ ] JSON-safe redaksiyon (sadece değerleri maskeleme, key’lere dokunmama)
+- [ ] Farklı risk içeren veriler için kurallar (VKN, SGK sicil numarası, plaka, pasaport numarası, IP adresi, MAC adresi, konum verileri vb.)
+- [ ] Daha gelişmiş dil tespiti (Türkçe–İngilizce dışı diller için destek)
+- [ ] CLI aracı ile dosya/batch analizi (`dataguardian analyze file.json`)
+
+### v3.0 (Uzun vadeli hedeflenen)
+- [ ] Plug-in mimarisi (kendi PII dedektörlerini ekleme)
+- [ ] Yönetim arayüzü (policy editor + dashboard)
+- [ ] OpenAPI/Swagger plugin: request/response şemalarına göre risk tahmini
+
+---
+
 ## Lisans
 MIT © Devoplus
