@@ -1,15 +1,12 @@
-# Devoplus DataGuardian — Privacy Middleware (TR/EN)
+# Devoplus DataGuardian — Privacy Middleware
 
-DataGuardian, ASP.NET Core için **request/response** gövdelerinde PII/Sensitive Data tespiti yapar, **0–10 risk skoru** üretir, isteğe bağlı olarak **header yazar, redaksiyon yapar veya bloklar**. TR ve EN dillerini destekler; kurallar + (opsiyonel) **BERT-ONNX NER** hibrit yaklaşımını kullanır.
+DataGuardian, ASP.NET Core için **request ve response** gövdelerinde PII/Sensitive Data tespiti yapar, **0–10 risk skoru** üretir, isteğe bağlı olarak **response header yazar, redaksiyon yapar veya bloklar**. Türkçe ve İngilizce dillerini destekler.
 
-- ✅ Kural tabanlı dedektörler: TCKN (checksum), IBAN-TR, Kredi Kartı (Luhn), E-posta, Telefon, Tarih, Adres anahtar sözcükleri
+- ✅ Kural tabanlı dedektörler: TCKN (checksum), IBAN, Kredi Kartı (Luhn), E-posta, Telefon, Tarih, Adres anahtar sözcükleri
 - ✅ TR/EN dil tahmini veya `LanguageOverride`
 - ✅ Konfigürasyon: ağırlıklar, eşikler, path/metot filtreleri, entity include/exclude, header öneki
 - ✅ Aksiyon modları: **Tag**, **Redact** (MaskAll/Partial/Hash), **Block**
 - ✅ Opsiyonel **BERT NER (ONNX)**: serbest metinde `PERSON/ADDRESS/...`
-- ✅ Örnek Minimal API, unit testler, GitHub Actions
-
-> v1, kurallar ile tek başına çalışır. NER’i etkinleştirmek için `models/` altına ONNX model + tokenizer + labels koymanız yeterli.
 
 ---
 
@@ -68,8 +65,6 @@ app.Run();
 - `X-DataGuardian-Response-Risk: 0..10`
 - `X-DataGuardian-Response-Detected: ...`
 
-> Ham PII **asla** loglanmaz; sadece tip ve adet.
-
 ---
 
 ## Yapılandırma (appsettings örneği)
@@ -113,11 +108,13 @@ app.Run();
 
 Cloudflare üzerinde aşağıdaki snippet, **origin’den dönen** DataGuardian header’larını kontrol eder. **Hariç tutulan path’ler** (exclude) dışındaysa ve risk **eşiği aşmışsa**, **403** döndürür.
 
-- `DATAGUARDIAN_THRESHOLD` — örn. `8.0`
-- `DATAGUARDIAN_HEADER_PREFIX` — varsayılan `X-DataGuardian`
-- `DATAGUARDIAN_EXCLUDED_PATHS` — `/health,/metrics,/public`
+**Environment Değişkenleri:**
 
-> Not: Header’lar origin’de üretildiğinden istek bir kez origin’e ulaşır. Uygulama katmanında erken durdurmak isterseniz `Action = Block` + `BlockAt` ayarını kullanın.
+- `DATAGUARDIAN_THRESHOLD` - örn. `8.0`
+- `DATAGUARDIAN_HEADER_PREFIX` - varsayılan `X-DataGuardian`
+- `DATAGUARDIAN_EXCLUDED_PATHS` - `/health,/metrics,/public`
+
+> Not: Header’lar origin’de üretildiğinden istek bir kez origin’e ulaşır. Request'i uygulama katmanında daha erken durdurmak isterseniz `Action = Block` + `BlockAt` ayarını kullanmanız gerekir.
 
 ```js
 // edge/dataguardian-snippet.js
@@ -146,9 +143,48 @@ export default {
 };
 ```
 
-### Neden hem origin hem edge?
-- **Origin’de blok**: Uygulama maliyetini azaltır, iş mantığına gelmeden keser.  
-- **Edge’de blok**: Çoklu origin ve merkezi politika yönetimi için idealdir.
+
+### Hangi yaklaşımı kullanmalıyım?
+
+**Kısa cevap:**  
+- **Sadece gözlem/uyarı** istiyorsanız → **Origin’de _Tag_ (sadece response header yazar)**  
+- **Maliyet ve risk kritik** (erken kes) → **Origin’de _Block_**  
+- **Merkezi politika + çok-çekirdek/origin** → **Edge’de (Cloudflare) blok**  
+- **En sıkı** senaryo → **Origin’de _Block_ + Edge’de ikinci bariyer**
+
+---
+
+**Karşılaştırma**
+
+| Kriter | Origin (Middleware) | Edge (Cloudflare Snippet/Worker) |
+|---|---|---|
+| Bloklama noktası | Uygulama katmanı (erken) | Kullanıcıya en yakın nokta |
+| Uygulama maliyeti | Düşer (erken durur) | Origin’e yine gider (header okumak için) |
+| Çoklu origin / ortak politika | Zor (her service ayrı ayar) | Kolay (tek yerde politika) |
+| Gözlemlenebilirlik | Uygulama logları | Edge logları ile merkezi + Cloudflare Logpush desteği |
+| Hata modları | Uygulama hatası etkiler | Origin hatası olsa da Edge karar verebilir |
+| Streaming / SSE | İçerik değişmeden önce durdurma/redaksiyon | Çoğu zaman içerik geldikten sonra karar |
+| Cache entegrasyonu | App tarafında | Cloudflare Cache ile kolay |
+| Rollout / kademeli geçiş | Feature flag ile | Route/hostname bazlı çok kolay |
+
+---
+
+**Ne zaman hangisini seçelim?**
+
+- **Regülasyon-kritik uçlar** (KYC, ödeme, veri ihracı):  
+  → *Öncelik Origin Block.* `Action=Block`, `BlockAt=…` ile **erken kes**.  
+  Gerekirse **Edge**’de de aynı eşiği uygulayıp ikinci bariyer kur.
+
+- **Tek merkezden yönetim** (çok mikroservis, çok dil/yığın):  
+  → *Öncelik Edge.* 
+  Snippet/Worker ile **tek yerde politika**. Origin’de **Tag** kullanılır (response header üretir), edge üzerinde bloklama yapılabilir.
+---
+
+**Pratik ipuçları**
+
+- **Gözlemleme:** “blok nedenleri” için Cloudflare Worker’a D1 kullanarak *log* eklenebilir.  
+- **Hata toleransı:** Bir yapılandırma hatası nedeniyle origin header üretmezse Edge "risk yok" varsayabilir **veya** default-deny modunda kullanılabilir.
+
 
 ---
 

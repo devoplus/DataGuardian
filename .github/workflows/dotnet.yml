@@ -15,8 +15,10 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Restore
+      - name: Restore NuGet Packages
         run: dotnet restore
+      - name: Clean solution
+        run: dotnet clean
       - name: Build
         run: dotnet build --configuration Release --no-restore
       - name: Test
