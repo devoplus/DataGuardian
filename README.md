@@ -1,4 +1,4 @@
-# Devoplus DataGuardian — Privacy Middleware
+# Devoplus DataGuardian - Privacy Middleware
 
 DataGuardian, ASP.NET Core için **request ve response** gövdelerinde PII/Sensitive Data tespiti yapar, **0–10 risk skoru** üretir, isteğe bağlı olarak **response header yazar, redaksiyon yapar veya bloklar**. Türkçe ve İngilizce dillerini destekler.
 
