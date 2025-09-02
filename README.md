@@ -1,3 +1,4 @@
+
 # Devoplus DataGuardian - Privacy Middleware
 
 DataGuardian, ASP.NET Core için **request ve response** gövdelerinde PII/Sensitive Data tespiti yapar, **0–10 risk skoru** üretir, isteğe bağlı olarak **response header yazar, redaksiyon yapar veya bloklar**. Türkçe ve İngilizce dillerini destekler.
@@ -64,6 +65,10 @@ app.Run();
 - `X-DataGuardian-Request-Detected: EMAIL=2;PHONE=1;...`
 - `X-DataGuardian-Response-Risk: 0..10`
 - `X-DataGuardian-Response-Detected: ...`
+
+### Postman ile test örneği
+Projede yer alan **Devoplus.DataGuardian.SampleApi** projesini başlatarak Postman üzerinden veri göndererek header'ları test edebilirsiniz.
+![Postman ekran görüntüsü](assets/postman_ss.png "Postman")
 
 ---
 
