@@ -216,6 +216,7 @@ DataGuardian için planlanan geliştirmeler ve hedefler:
 - [x] Opsiyonel NER entegrasyonu (ONNX)
 
 ### v2.0 (Kısa vadeli hedeflenen)
+- [ ] .NET Standard 2.0 desteği
 - [ ] Edge (Cloudflare) snippet için logging ve metric forwarding
 - [ ] JSON-safe redaksiyon (sadece değerleri maskeleme, key’lere dokunmama)
 - [ ] Farklı risk içeren veriler için kurallar (VKN, SGK sicil numarası, plaka, pasaport numarası, IP adresi, MAC adresi, konum verileri vb.)
