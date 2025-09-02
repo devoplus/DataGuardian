@@ -16,8 +16,17 @@ public class RecognizerTests
     public void Tckn_Checksum_Works()
     {
         var r = new TcknRecognizer();
-        var hits = r.Analyze("00000000000 10000000146 10000000145", "tr");
+        // Hepsi geçersiz örnekler:
+        var hits = r.Analyze("00000000000 10000000147 12345678901 11111111111", "tr");
         Assert.Empty(hits);
+    }
+
+    [Fact]
+    public void Tckn_Valid_Sample_Is_Detected()
+    {
+        var r = new TcknRecognizer();
+        var hits = r.Analyze("Foo 10000000146 Bar", "tr");
+        Assert.Contains(hits, h => h.Type == "TCKN");
     }
 
     [Fact]
