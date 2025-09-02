@@ -68,7 +68,7 @@ app.Run();
 
 ### Postman ile test örneği
 Projede yer alan **Devoplus.DataGuardian.SampleApi** projesini başlatarak Postman üzerinden veri göndererek header'ları test edebilirsiniz.
-![Postman ekran görüntüsü](assets/postman_ss.png "Postman")
+![Postman ekran görüntüsü](https://github.com/devoplus/DataGuardian/raw/main/assets/postman_ss.png "Postman")
 
 ---
 
