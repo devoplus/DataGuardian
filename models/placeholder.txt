@@ -1,0 +1,1 @@
+NER kullanmak istemiyorsanız bu klasör boş kalabilir. Kullanmak için: kvkk-ner.onnx, tokenizer.json ve labels.txt dosyalarını buraya ekleyin.

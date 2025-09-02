@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>Devoplus Data Guardian</Title>
+    <Description>DataGuardian, ASP.NET Core için request/response gövdelerinde PII/Sensitive Data tespiti yapar ve 0–10 risk skoru üretir. İsteğe bağlı olarak response header yazar, redaksiyon yapar veya bloklar. Türkçe ve İngilizce dillerini destekler.</Description>
+    <Copyright>Devoplus</Copyright>
+    <PackageProjectUrl>https://github.com/devoplus/DataGuardian</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/devoplus/DataGuardian</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="libphonenumber-csharp" Version="9.0.13" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.18.0" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" Version="0.22.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+</Project>
