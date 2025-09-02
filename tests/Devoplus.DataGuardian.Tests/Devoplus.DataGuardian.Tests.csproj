@@ -3,11 +3,14 @@
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Devoplus.DataGuardian\Devoplus.DataGuardian.csproj" />
+	<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.7.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.7" />
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
+	<PackageReference Include="Google.Protobuf" Version="3.27.1" />
   </ItemGroup>
 </Project>
