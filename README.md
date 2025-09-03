@@ -1,6 +1,6 @@
 # Devoplus DataGuardian - Privacy Middleware
 
-[![NuGet Version](https://img.shields.io/nuget/v/Devoplus.DataGuardian)](https://www.nuget.org/packages/Devoplus.DataGuardian/1.0.0) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/devoplus/DataGuardian/dotnet.yml) ![GitHub License](https://img.shields.io/github/license/devoplus/DataGuardian) ![Devoplus Open Source](https://img.shields.io/badge/Open_Source-DP?label=Devoplus&labelColor=%23B60017&color=%2319191a)
+[![NuGet Version](https://img.shields.io/nuget/v/Devoplus.DataGuardian)](https://www.nuget.org/packages/Devoplus.DataGuardian) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/devoplus/DataGuardian/dotnet.yml) ![GitHub License](https://img.shields.io/github/license/devoplus/DataGuardian) ![Devoplus Open Source](https://img.shields.io/badge/Open_Source-DP?label=Devoplus&labelColor=%23B60017&color=%2319191a)
 
 DataGuardian, ASP.NET Core için **request ve response** gövdelerinde PII/Sensitive Data tespiti yapar, **0–10 risk skoru** üretir, isteğe bağlı olarak **response header yazar, redaksiyon yapar veya bloklar**. Türkçe ve İngilizce dillerini destekler.
 
