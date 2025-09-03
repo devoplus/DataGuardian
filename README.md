@@ -66,6 +66,7 @@ app.Run();
 - `X-DataGuardian-Request-Detected: EMAIL=2;PHONE=1;...`
 - `X-DataGuardian-Response-Risk: 0..10`
 - `X-DataGuardian-Response-Detected: ...`
+- `X-DataGuardian-Response-Skip-Reason: ...`
 
 ### Postman ile test örneği
 Projede yer alan **Devoplus.DataGuardian.SampleApi** projesini başlatarak Postman üzerinden veri göndererek header'ları test edebilirsiniz.

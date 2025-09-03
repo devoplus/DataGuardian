@@ -57,6 +57,7 @@ public sealed class DataGuardianMiddleware
                 ctx.Response.Headers[$"{_opt.HeaderPrefix}-Request-Risk"] = r.ToString("F2");
                 ctx.Response.Headers[$"{_opt.HeaderPrefix}-Request-Detected"] = FormatCounts(counts);
             }
+
             if (_opt.Action == ActionMode.Block && _opt.BlockAt >= 0 && r >= _opt.BlockAt)
             {
                 ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
@@ -105,6 +106,15 @@ public sealed class DataGuardianMiddleware
                     return;
                 }
             }
+
+            if (!_opt.AnalyzeResponses)
+                ctx.Response.Headers["X-DataGuardian-Response-Skip-Reason"] = "AnalyzeResponses=false";
+            else if (!IsTextContent(ctx.Response.ContentType))
+                ctx.Response.Headers["X-DataGuardian-Response-Skip-Reason"] = "ContentTypeNotAnalyzable";
+            else if (buffer.Length > _opt.MaxBodySizeBytes)
+                ctx.Response.Headers["X-DataGuardian-Response-Skip-Reason"] = "BodyTooLarge";
+            else if (string.IsNullOrEmpty(responseText))
+                ctx.Response.Headers["X-DataGuardian-Response-Skip-Reason"] = "EmptyResponse";
 
             await buffer.CopyToAsync(originalBody);
             ctx.Response.Body = originalBody;
