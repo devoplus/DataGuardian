@@ -35,6 +35,8 @@ public class IntegrationTests
     [Fact]
     public void Engine_Calculates_Risk_With_New_Detectors()
     {
+        const double ExpectedMinimumHighRisk = 5.0; // VKN (9) + TCKN (10) + Passport (8)
+        
         var opt = new DataGuardianOptions { LanguageOverride = "tr" };
         var engine = new DataGuardianEngine(opt);
         
@@ -47,7 +49,7 @@ public class IntegrationTests
         var (lowRisk, _, _) = engine.AnalyzeDetailed(lowRiskText);
         
         Assert.True(highRisk > lowRisk);
-        Assert.True(highRisk > 5.0); // Should have significant risk with VKN (9), TCKN (10), and Passport (8)
+        Assert.True(highRisk > ExpectedMinimumHighRisk);
     }
 
     [Fact]

@@ -10,6 +10,8 @@ namespace Devoplus.DataGuardian;
 
 public sealed class DataGuardianMiddleware
 {
+    private const int JsonSearchLimit = 100;
+    
     private readonly RequestDelegate _next;
     private readonly DataGuardianEngine _engine;
     private readonly DataGuardianOptions _opt;
@@ -243,8 +245,15 @@ public sealed class DataGuardianMiddleware
                 }
                 else // Partial masking
                 {
-                    var visibleChars = Math.Min(2, hit.Length / 3);
-                    redacted = value[..visibleChars] + new string('*', hit.Length - 2 * visibleChars) + value[^visibleChars..];
+                    if (hit.Length <= 3)
+                    {
+                        redacted = new string('*', hit.Length);
+                    }
+                    else
+                    {
+                        var visibleChars = Math.Max(1, Math.Min(2, hit.Length / 3));
+                        redacted = value[..visibleChars] + new string('*', hit.Length - 2 * visibleChars) + value[^visibleChars..];
+                    }
                 }
                 
                 sb.Remove(hit.Start, hit.Length);
@@ -270,7 +279,7 @@ public sealed class DataGuardianMiddleware
         int colonPos = -1;
         int commaOrBracketPos = -1;
         
-        for (int j = i; j >= 0 && j > Math.Max(0, position - 100); j--)
+        for (int j = i; j >= 0 && j > Math.Max(0, position - JsonSearchLimit); j--)
         {
             if (json[j] == ':' && colonPos < 0) colonPos = j;
             if ((json[j] == ',' || json[j] == '{' || json[j] == '[') && commaOrBracketPos < 0) commaOrBracketPos = j;
