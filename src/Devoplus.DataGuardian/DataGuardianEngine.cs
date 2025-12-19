@@ -21,6 +21,10 @@ public sealed class DataGuardianEngine
             new Recognizers.IbanRecognizer(),
             new Recognizers.CreditCardRecognizer(),
             new Recognizers.TcknRecognizer(),
+            new Recognizers.VknRecognizer(),
+            new Recognizers.SgkRecognizer(),
+            new Recognizers.PassportRecognizer(),
+            new Recognizers.LicensePlateRecognizer(),
             new Recognizers.DobRecognizer(),
             new Recognizers.AddressRecognizer()
         };
