@@ -155,6 +155,11 @@ public sealed class DataGuardianMiddleware
 
     private static string Redact(string text, IEnumerable<PiiHit> hits, DataGuardianOptions opt)
     {
+        if (opt.Redaction == RedactionStyle.JsonSafe)
+        {
+            return RedactJsonSafe(text, hits, opt);
+        }
+
         var sb = new StringBuilder(text);
         var toRedact = hits.Where(h => opt.RedactTypes.Contains(h.Type)).OrderByDescending(h => h.Start).ToList();
         foreach (var h in toRedact)
@@ -179,5 +184,101 @@ public sealed class DataGuardianMiddleware
             }
         }
         return sb.ToString();
+    }
+
+    private static string RedactJsonSafe(string text, IEnumerable<PiiHit> hits, DataGuardianOptions opt)
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(text);
+            var toRedact = hits.Where(h => opt.RedactTypes.Contains(h.Type)).ToList();
+            return RedactJsonElement(text, doc.RootElement, toRedact);
+        }
+        catch
+        {
+            // Fall back to regular redaction if JSON parsing fails
+            return Redact(text, hits, new DataGuardianOptions { Redaction = RedactionStyle.Partial, RedactTypes = opt.RedactTypes });
+        }
+    }
+
+    private static string RedactJsonElement(string originalText, System.Text.Json.JsonElement element, List<PiiHit> hits)
+    {
+        var sb = new StringBuilder(originalText);
+        
+        // Process hits in reverse order to maintain correct positions
+        var sortedHits = hits.OrderByDescending(h => h.Start).ToList();
+        
+        foreach (var hit in sortedHits)
+        {
+            if (hit.Start < 0 || hit.Start + hit.Length > sb.Length) continue;
+            
+            // Check if this hit is within a JSON value (not a key)
+            if (IsWithinJsonValue(originalText, hit.Start, element))
+            {
+                // Apply partial redaction to preserve some readability
+                var value = sb.ToString(hit.Start, hit.Length);
+                string redacted;
+                
+                if (hit.Length <= 3)
+                {
+                    redacted = new string('*', hit.Length);
+                }
+                else if (value.Contains('@')) // Email-like
+                {
+                    var atPos = value.IndexOf('@');
+                    var parts = value.Split('@');
+                    if (parts.Length == 2)
+                    {
+                        var localPart = parts[0].Length > 2 ? parts[0][..1] + new string('*', parts[0].Length - 1) : new string('*', parts[0].Length);
+                        var domainParts = parts[1].Split('.');
+                        var domain = domainParts.Length > 1 
+                            ? new string('*', domainParts[0].Length) + "." + domainParts[^1]
+                            : new string('*', parts[1].Length);
+                        redacted = localPart + "@" + domain;
+                    }
+                    else
+                    {
+                        redacted = value[..1] + new string('*', value.Length - 1);
+                    }
+                }
+                else // Partial masking
+                {
+                    var visibleChars = Math.Min(2, hit.Length / 3);
+                    redacted = value[..visibleChars] + new string('*', hit.Length - 2 * visibleChars) + value[^visibleChars..];
+                }
+                
+                sb.Remove(hit.Start, hit.Length);
+                sb.Insert(hit.Start, redacted);
+            }
+        }
+        
+        return sb.ToString();
+    }
+
+    private static bool IsWithinJsonValue(string json, int position, System.Text.Json.JsonElement root)
+    {
+        // Simple heuristic: check if the position is not immediately after a colon and quote
+        // This is a simplified approach - we assume the position is in a value if it's not clearly a key
+        
+        // Look backward to find the nearest structural character
+        int i = position - 1;
+        while (i >= 0 && char.IsWhiteSpace(json[i])) i--;
+        
+        if (i < 0) return false;
+        
+        // If we find a colon before finding a comma/bracket, we're likely in a value
+        int colonPos = -1;
+        int commaOrBracketPos = -1;
+        
+        for (int j = i; j >= 0 && j > Math.Max(0, position - 100); j--)
+        {
+            if (json[j] == ':' && colonPos < 0) colonPos = j;
+            if ((json[j] == ',' || json[j] == '{' || json[j] == '[') && commaOrBracketPos < 0) commaOrBracketPos = j;
+            
+            if (colonPos >= 0 && commaOrBracketPos >= 0) break;
+        }
+        
+        // If we found a colon more recently than a comma/bracket, we're in a value
+        return colonPos > commaOrBracketPos;
     }
 }

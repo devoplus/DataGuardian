@@ -11,8 +11,8 @@ public sealed class DataGuardianOptions
 
     public Dictionary<string, double> Weights { get; set; } = new()
     {
-        ["TCKN"] = 10, ["CREDIT_CARD"] = 9, ["IBAN_TR"] = 8,
-        ["DOB"] = 7, ["ADDRESS"] = 6, ["PHONE"] = 5, ["EMAIL"] = 4, ["PERSON"] = 3
+        ["TCKN"] = 10, ["CREDIT_CARD"] = 9, ["VKN"] = 9, ["IBAN_TR"] = 8, ["PASSPORT"] = 8,
+        ["DOB"] = 7, ["SGK"] = 7, ["ADDRESS"] = 6, ["PHONE"] = 5, ["LICENSE_PLATE"] = 5, ["EMAIL"] = 4, ["PERSON"] = 3
     };
 
     public int MaxCountPerType { get; set; } = 5;
@@ -47,7 +47,7 @@ public sealed class DataGuardianOptions
     // Action mode
     public ActionMode Action { get; set; } = ActionMode.Tag; // Tag by default
     public double RedactAt { get; set; } = 0; // Redact when risk >= RedactAt
-    public HashSet<string> RedactTypes { get; set; } = new() { "EMAIL","PHONE","TCKN","CREDIT_CARD","IBAN_TR","DOB" };
+    public HashSet<string> RedactTypes { get; set; } = new() { "EMAIL","PHONE","TCKN","CREDIT_CARD","IBAN_TR","DOB","VKN","SGK","LICENSE_PLATE","PASSPORT" };
     public RedactionStyle Redaction { get; set; } = RedactionStyle.MaskAll;
 
     // Headers toggle
@@ -59,4 +59,4 @@ public sealed class DataGuardianOptions
 
 // Supporting enums
 public enum ActionMode { None, Tag, Redact, Block }
-public enum RedactionStyle { MaskAll, Partial, Hash }
+public enum RedactionStyle { MaskAll, Partial, Hash, JsonSafe }
