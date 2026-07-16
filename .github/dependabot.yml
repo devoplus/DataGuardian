@@ -1,11 +1,16 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
+# Dependabot version updates.
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
 updates:
-  - package-ecosystem: "nuget" # See documentation for possible values
-    directory: "/src/" # Location of package manifests
+  # NuGet: "/" lets dotnet discover every manifest (src, tests, samples).
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Keep GitHub Actions (checkout, setup-dotnet, upload-artifact) up to date.
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
       interval: "weekly"
