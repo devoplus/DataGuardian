@@ -61,3 +61,27 @@ public static class DataGuardianApplicationBuilderExtensions
         return app.UseMiddleware<DataGuardianMiddleware>(options);
     }
 }
+
+/// <summary>
+/// Compatibility shim retained so callers that reference <c>DataGuardianExtensions</c> by type name
+/// (e.g. <c>DataGuardianExtensions.UseDataGuardian(app, opt)</c>) continue to compile.
+/// Use <see cref="DataGuardianApplicationBuilderExtensions"/> or <see cref="DataGuardianServiceCollectionExtensions"/> instead.
+/// </summary>
+[Obsolete("Use DataGuardianApplicationBuilderExtensions or DataGuardianServiceCollectionExtensions instead. This type will be removed in a future major version.")]
+public static class DataGuardianExtensions
+{
+    /// <inheritdoc cref="DataGuardianApplicationBuilderExtensions.UseDataGuardian(IApplicationBuilder)"/>
+    [Obsolete("Use DataGuardianApplicationBuilderExtensions.UseDataGuardian instead.")]
+    public static IApplicationBuilder UseDataGuardian(IApplicationBuilder app)
+        => DataGuardianApplicationBuilderExtensions.UseDataGuardian(app);
+
+    /// <inheritdoc cref="DataGuardianApplicationBuilderExtensions.UseDataGuardian(IApplicationBuilder, DataGuardianOptions)"/>
+    [Obsolete("Use DataGuardianApplicationBuilderExtensions.UseDataGuardian instead.")]
+    public static IApplicationBuilder UseDataGuardian(IApplicationBuilder app, DataGuardianOptions options)
+        => DataGuardianApplicationBuilderExtensions.UseDataGuardian(app, options);
+
+    /// <inheritdoc cref="DataGuardianApplicationBuilderExtensions.UseDataGuardian(IApplicationBuilder, Action{DataGuardianOptions})"/>
+    [Obsolete("Use DataGuardianApplicationBuilderExtensions.UseDataGuardian instead.")]
+    public static IApplicationBuilder UseDataGuardian(IApplicationBuilder app, Action<DataGuardianOptions> configure)
+        => DataGuardianApplicationBuilderExtensions.UseDataGuardian(app, configure);
+}

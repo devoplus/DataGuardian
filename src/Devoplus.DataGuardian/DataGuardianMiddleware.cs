@@ -179,14 +179,13 @@ public sealed class DataGuardianMiddleware
     /// <summary>Reads the request body up to the size cap. Returns (body, oversize); body is null when skipped.</summary>
     private async Task<(string? body, bool oversize)> ReadRequestBodyAsync(HttpContext ctx)
     {
+        // Check ContentLength before enabling buffering to avoid unnecessary disk-buffering overhead
+        // for oversized requests that we will immediately reject.
+        if (ctx.Request.ContentLength is long declared && declared > _opt.MaxBodySizeBytes)
+            return (null, true);
+
         ctx.Request.EnableBuffering();
         var stream = ctx.Request.Body;
-
-        if (ctx.Request.ContentLength is long declared && declared > _opt.MaxBodySizeBytes)
-        {
-            stream.Position = 0;
-            return (null, true);
-        }
 
         using var ms = new MemoryStream();
         var buffer = new byte[8192];

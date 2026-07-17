@@ -14,7 +14,7 @@ namespace Devoplus.DataGuardian.Recognizers;
 public sealed class CreditCardRecognizer : IPiiRecognizer
 {
     static readonly Regex Rx = new(
-        @"\b\d(?:[ \-]?\d){12,18}\b",
+        @"\b\d(?:[ \-]?\d){11,18}\b",
         RegexOptions.Compiled,
         TimeSpan.FromMilliseconds(200));
 
@@ -24,7 +24,7 @@ public sealed class CreditCardRecognizer : IPiiRecognizer
         foreach (Match m in Rx.Matches(text))
         {
             var digits = new string(m.Value.Where(char.IsDigit).ToArray());
-            if (digits.Length < 13 || digits.Length > 19) continue;
+            if (digits.Length < 12 || digits.Length > 19) continue;
             if (IsLuhnValid(digits) && IsKnownCardType(digits))
                 list.Add(new PiiHit(PiiTypes.CreditCard, m.Index, m.Length));
         }
