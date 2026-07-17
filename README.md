@@ -2,13 +2,15 @@
 
 [![NuGet Version](https://img.shields.io/nuget/v/Devoplus.DataGuardian)](https://www.nuget.org/packages/Devoplus.DataGuardian) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/devoplus/DataGuardian/dotnet.yml) ![GitHub License](https://img.shields.io/github/license/devoplus/DataGuardian) ![Devoplus Open Source](https://img.shields.io/badge/Open_Source-DP?label=Devoplus&labelColor=%23B60017&color=%2319191a)
 
-DataGuardian, ASP.NET Core için **request ve response** gövdelerinde PII/Sensitive Data tespiti yapar, **0–10 risk skoru** üretir, isteğe bağlı olarak **response header yazar, redaksiyon yapar veya bloklar**. Türkçe ve İngilizce dillerini destekler.
+DataGuardian, ASP.NET Core için **request ve response** gövdelerinde PII/hassas veri tespiti yapar, **0–10 risk skoru** üretir, isteğe bağlı olarak **response header yazar, redaksiyon yapar veya bloklar**. Türkçe ve İngilizce dillerini destekler.
 
-- ✅ Kural tabanlı dedektörler: TCKN (checksum), IBAN, Kredi Kartı (Luhn), E-posta, Telefon, Tarih, Adres anahtar sözcükleri
+- ✅ Kural tabanlı dedektörler: TCKN (checksum), IBAN (mod-97), Kredi Kartı (Luhn + şema), E-posta, Telefon, Tarih, Adres anahtar sözcükleri
 - ✅ TR/EN dil tahmini veya `LanguageOverride`
 - ✅ Konfigürasyon: ağırlıklar, eşikler, path/metot filtreleri, entity include/exclude, header öneki
 - ✅ Aksiyon modları: **Tag**, **Redact** (MaskAll/Partial/Hash), **Block**
 - ✅ Opsiyonel **BERT NER (ONNX)**: serbest metinde `PERSON/ADDRESS/...`
+
+> Ayrıntılı belgeler [`docs/`](docs/) klasöründedir. Değişiklik geçmişi için [`CHANGELOG.md`](CHANGELOG.md).
 
 ---
 
@@ -20,36 +22,23 @@ dotnet test
 
 cd samples/Devoplus.DataGuardian.SampleApi
 dotnet run
-# POST JSON to /echo and check headers:
+# POST JSON to /echo and check the response headers:
 #   X-DataGuardian-Request-Risk, X-DataGuardian-Response-Risk
 ```
 
-### Program.cs kullanım örneği
+### Kullanım (DI + konfigürasyon)
+
+Önerilen yol, seçenekleri `appsettings.json`'daki `DataGuardian` bölümünden bağlamaktır:
 
 ```csharp
 using Devoplus.DataGuardian;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDataGuardian(builder.Configuration.GetSection("DataGuardian"));
+
 var app = builder.Build();
-
-var opt = new DataGuardianOptions
-{
-    AnalyzeRequests = true,
-    AnalyzeResponses = true,
-    HeaderPrefix = "X-DataGuardian",
-    Action = ActionMode.Tag,    // None | Tag | Redact | Block
-    BlockAt = -1,               // Block modunda eşik
-    RedactAt = 4.0,             // Redact modunda eşik
-    Redaction = RedactionStyle.MaskAll,
-    IncludePaths = new() { "/api/" },
-    ExcludePaths = new() { "/health", "/metrics" },
-    IncludeMethods = new() { "POST", "PUT" },
-    ExcludeMethods = new() { "GET" },
-    EnableNer = false,          // ONNX model ekleyince true
-    // LanguageOverride = "tr"
-};
-
-app.UseDataGuardian(opt);
+app.UseDataGuardian();   // AddDataGuardian ile kaydedilen seçenekleri çözer
 
 app.MapPost("/echo", async (HttpContext ctx) =>
 {
@@ -61,12 +50,31 @@ app.MapPost("/echo", async (HttpContext ctx) =>
 app.Run();
 ```
 
+### Kullanım (kod içinde inline)
+
+```csharp
+app.UseDataGuardian(o =>
+{
+    o.Action = ActionMode.Tag;    // None | Tag | Redact | Block
+    o.BlockAt = 8.0;              // Block modunda eşik
+    o.RedactAt = 4.0;             // Redact modunda eşik
+    o.Redaction = RedactionStyle.MaskAll;
+    o.ExcludePaths = new() { "/health", "/metrics" };
+    o.EnableNer = false;          // ONNX model ekleyince true
+    // o.LanguageOverride = "tr";
+});
+```
+
+> Geçersiz bir konfigürasyon (`K <= 0`, `MaxCountPerType < 1`, eşiklerin aralık dışı olması vb.) başlangıçta `ArgumentException` ile **erken** hata verir; sessizce yok sayılmaz.
+
 ### Header’lar
-- `X-DataGuardian-Request-Risk: 0..10`
+- `X-DataGuardian-Request-Risk: 0..10` (nokta ondalık, kültürden bağımsız)
 - `X-DataGuardian-Request-Detected: EMAIL=2;PHONE=1;...`
 - `X-DataGuardian-Response-Risk: 0..10`
 - `X-DataGuardian-Response-Detected: ...`
-- `X-DataGuardian-Response-Skip-Reason: ...`
+- `X-DataGuardian-Response-Skip-Reason: ...` (ör. `ContentTypeNotAnalyzable`, `BodyTooLarge`, `UnsupportedCharset`, `NoRedactableTypes`)
+
+> **Güvenlik notu:** `-Detected` header’ları hangi PII tiplerinin bulunduğunu açığa vurur. Bunları yalnızca güvenilir iç tüketicilere (ör. edge) verin; dış istemcilere dönen yanıtlarda `EmitHeaders = false` yapın veya güven sınırında temizleyin. Ayrıntı: [`docs/security.md`](docs/security.md).
 
 ### Postman ile test örneği
 Projede yer alan **Devoplus.DataGuardian.SampleApi** projesini başlatarak Postman üzerinden veri göndererek header'ları test edebilirsiniz.
@@ -88,15 +96,17 @@ Projede yer alan **Devoplus.DataGuardian.SampleApi** projesini başlatarak Postm
     "RedactAt": 4.0,
     "Redaction": "MaskAll",       // MaskAll | Partial | Hash
     "IncludePaths": ["/api/"],
-    "ExcludePaths": ["/health","/metrics"],
-    "IncludeMethods": ["POST","PUT"],
+    "ExcludePaths": ["/health", "/metrics"],
+    "IncludeMethods": ["POST", "PUT"],
     "ExcludeMethods": ["GET"],
     "IncludeEntityTypes": [],
     "ExcludeEntityTypes": ["ADDRESS"],
-    "Weights": { "TCKN":10, "CREDIT_CARD":9, "IBAN_TR":8, "DOB":7, "ADDRESS":6, "PHONE":5, "EMAIL":4, "PERSON":3 },
+    "Weights": { "TCKN": 10, "CREDIT_CARD": 9, "IBAN": 8, "DOB": 7, "ADDRESS": 6, "PHONE": 5, "EMAIL": 4, "PERSON": 3 },
     "MaxCountPerType": 5,
     "K": 0.15,
     "MaxBodySizeBytes": 524288,
+    "BlockOversizeBodies": false,
+    "DefaultPhoneRegion": "TR",
     "EnableNer": false,
     "NerModelPath": "models/kvkk-ner.onnx",
     "NerTokenizerPath": "models/tokenizer.json",
@@ -107,101 +117,29 @@ Projede yer alan **Devoplus.DataGuardian.SampleApi** projesini başlatarak Postm
   }
 }
 ```
-> `IOptions<DataGuardianOptions>` ile bağlayabilirsiniz.
+
+Tüm seçeneklerin ayrıntısı: [`docs/configuration.md`](docs/configuration.md).
+
+> **Not:** Entity tip anahtarları tek bir kaynakta (`PiiTypes`) tanımlıdır. `Weights`, `RedactTypes` ve tanıyıcı çıktıları aynı anahtarları kullanır (ör. IBAN için `IBAN`). Bir birim testi bu tutarlılığı sabitler.
 
 ---
 
-## Cloudflare Snippet / Worker ile Edge’de Uygulama
+## Belgeler
 
-Cloudflare üzerinde aşağıdaki snippet, **origin’den dönen** DataGuardian header’larını kontrol eder. **Hariç tutulan path’ler** (exclude) dışındaysa ve risk **eşiği aşmışsa**, **403** döndürür.
-
-**Environment Değişkenleri:**
-
-- `DATAGUARDIAN_THRESHOLD` - örn. `8.0`
-- `DATAGUARDIAN_HEADER_PREFIX` - varsayılan `X-DataGuardian`
-- `DATAGUARDIAN_EXCLUDED_PATHS` - `/health,/metrics,/public`
-
-> Not: Header’lar origin’de üretildiğinden istek bir kez origin’e ulaşır. Request'i uygulama katmanında daha erken durdurmak isterseniz `Action = Block` + `BlockAt` ayarını kullanmanız gerekir.
-
-```js
-// edge/dataguardian-snippet.js
-export default {
-  async fetch(request, env, ctx) {
-    const THRESHOLD = parseFloat(env.DATAGUARDIAN_THRESHOLD ?? "8.0");
-    const HEADER_PREFIX = env.DATAGUARDIAN_HEADER_PREFIX || "X-DataGuardian";
-    const EXCLUDED = (env.DATAGUARDIAN_EXCLUDED_PATHS || "/health,/metrics")
-      .split(",").map(s => s.trim()).filter(Boolean);
-
-    const url = new URL(request.url);
-    if (EXCLUDED.some(p => url.pathname.startsWith(p))) {
-      return fetch(request);
-    }
-
-    const originResp = await fetch(request);
-    const reqRisk = originResp.headers.get(`${HEADER_PREFIX}-Request-Risk`);
-    const resRisk = originResp.headers.get(`${HEADER_PREFIX}-Response-Risk`);
-    const risk = Math.max(parseFloat(reqRisk ?? "-1"), parseFloat(resRisk ?? "-1"));
-
-    if (!Number.isNaN(risk) && risk >= THRESHOLD) {
-      return new Response("Blocked by DataGuardian policy (edge).", { status: 403 });
-    }
-    return originResp;
-  }
-};
-```
-
-
-### Hangi yaklaşımı kullanmalıyım?
-
-**Kısa cevap:**  
-- **Sadece gözlem/uyarı** istiyorsanız → **Origin’de _Tag_ (sadece response header yazar)**  
-- **Maliyet ve risk kritik** (erken kes) → **Origin’de _Block_**  
-- **Merkezi politika + çok-çekirdek/origin** → **Edge’de (Cloudflare) blok**  
-- **En sıkı** senaryo → **Origin’de _Block_ + Edge’de ikinci bariyer**
-
----
-
-**Karşılaştırma**
-
-| Kriter | Origin (Middleware) | Edge (Cloudflare Snippet/Worker) |
-|---|---|---|
-| Bloklama noktası | Uygulama katmanı (erken) | Kullanıcıya en yakın nokta |
-| Uygulama maliyeti | Düşer (erken durur) | Origin’e yine gider (header okumak için) |
-| Çoklu origin / ortak politika | Zor (her service ayrı ayar) | Kolay (tek yerde politika) |
-| Gözlemlenebilirlik | Uygulama logları | Edge logları ile merkezi + Cloudflare Logpush desteği |
-| Hata modları | Uygulama hatası etkiler | Origin hatası olsa da Edge karar verebilir |
-| Streaming / SSE | İçerik değişmeden önce durdurma/redaksiyon | Çoğu zaman içerik geldikten sonra karar |
-| Cache entegrasyonu | App tarafında | Cloudflare Cache ile kolay |
-| Rollout / kademeli geçiş | Feature flag ile | Route/hostname bazlı çok kolay |
-
----
-
-**Ne zaman hangisini seçelim?**
-
-- **Regülasyon-kritik uçlar** (KYC, ödeme, veri ihracı):  
-  → *Öncelik Origin Block.* `Action=Block`, `BlockAt=…` ile **erken kes**.  
-  Gerekirse **Edge**’de de aynı eşiği uygulayıp ikinci bariyer kur.
-
-- **Tek merkezden yönetim** (çok mikroservis, çok dil/yığın):  
-  → *Öncelik Edge.* 
-  Snippet/Worker ile **tek yerde politika**. Origin’de **Tag** kullanılır (response header üretir), edge üzerinde bloklama yapılabilir.
----
-
-**Pratik ipuçları**
-
-- **Gözlemleme:** “blok nedenleri” için Cloudflare Worker’a D1 kullanarak *log* eklenebilir.  
-- **Hata toleransı:** Bir yapılandırma hatası nedeniyle origin header üretmezse Edge "risk yok" varsayabilir **veya** default-deny modunda kullanılabilir.
-
+| Belge | İçerik |
+|---|---|
+| [docs/configuration.md](docs/configuration.md) | Tüm seçeneklerin referansı |
+| [docs/recognizers.md](docs/recognizers.md) | Tanıyıcılar, ne tespit eder, doğrulama |
+| [docs/scoring.md](docs/scoring.md) | Risk skoru formülü |
+| [docs/actions.md](docs/actions.md) | Tag / Redact / Block ve redaksiyon stilleri |
+| [docs/security.md](docs/security.md) | Güvenlik modeli, sınırlar ve öneriler |
+| [docs/edge.md](docs/edge.md) | Cloudflare Snippet/Worker ile edge dağıtımı |
+| [docs/contributing.md](docs/contributing.md) | Geliştirme, test, yeni tanıyıcı ekleme |
 
 ---
 
 ## ONNX NER (Opsiyonel)
-`models/` altına:
-- `kvkk-ner.onnx`
-- `tokenizer.json`
-- `labels.txt` (etiket listesi)
-
-`EnableNer = true` yaparak etkinleştirin. Çıktı etiketleriniz `PERSON`, `ADDRESS`, `EMAIL`, `PHONE`, `DATE` vb. olabilir; DataGuardian bunları ağırlıklandırıp risk skoruna dahil eder.
+`models/` altına `kvkk-ner.onnx`, `tokenizer.json` ve `labels.txt` ekleyip `EnableNer = true` yaparak etkinleştirin. Çıktı etiketleriniz `PERSON`, `ADDRESS`, `EMAIL`, `PHONE`, `DATE` vb. olabilir; DataGuardian bunları ağırlıklandırıp risk skoruna dahil eder. NER entegrasyonunun bilinen sınırları ve olgunluk durumu için [`docs/recognizers.md`](docs/recognizers.md#ner-onnx) bölümüne bakın.
 
 ---
 
@@ -209,19 +147,20 @@ export default {
 
 DataGuardian için planlanan geliştirmeler ve hedefler:
 
-### v1.0 (Mevcut)
-- [x] Kural tabanlı PII tespitleri (T.C. kimlik numarası, IBAN, kredi kartı, e-posta, telefon, tarih, adres)
+### v1.x (Mevcut)
+- [x] Kural tabanlı PII tespitleri (TCKN, IBAN, kredi kartı, e-posta, telefon, tarih, adres)
 - [x] Risk skorlaması (0–10) ve header üretimi (`X-DataGuardian-*`)
 - [x] Aksiyon modları: **Tag**, **Redact**, **Block**
 - [x] Konfigürasyon: path/method filtreleri, entity include/exclude, redaksiyon stili
-- [x] Opsiyonel NER entegrasyonu (ONNX)
+- [x] DI / `AddDataGuardian` + konfigürasyon bağlama ve başlangıçta doğrulama
+- [x] Opsiyonel NER entegrasyonu (ONNX, deneysel)
 
 ### v2.0 (Kısa vadeli hedeflenen)
 - [ ] .NET Standard 2.0 desteği
 - [ ] Edge (Cloudflare) snippet için logging ve metric forwarding
-- [ ] JSON-safe redaksiyon (sadece değerleri maskeleme, key’lere dokunmama)
+- [ ] JSON-aware redaksiyon (sadece değerleri maskeleme, key’lere dokunmama)
 - [ ] Farklı risk içeren veriler için kurallar (VKN, SGK sicil numarası, plaka, pasaport numarası, IP adresi, MAC adresi, konum verileri vb.)
-- [ ] Daha gelişmiş dil tespiti (Türkçe–İngilizce dışı diller için destek)
+- [ ] NER için token→karakter ofset eşlemesi ve pencereleme (uzun gövdeler)
 - [ ] CLI aracı ile dosya/batch analizi (`dataguardian analyze file.json`)
 
 ### v3.0 (Uzun vadeli hedeflenen)

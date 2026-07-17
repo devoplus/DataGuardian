@@ -5,19 +5,25 @@ using System.Text.RegularExpressions;
 
 namespace Devoplus.DataGuardian.Recognizers;
 
+/// <summary>
+/// Detects Turkish national identity numbers (T.C. Kimlik No) and validates them with the official checksum.
+/// </summary>
+/// <remarks>
+/// The recognizer is language independent: the checksum is strong enough to eliminate false positives,
+/// so gating on the detected language would only cause missed detections in bodies without Turkish
+/// diacritics (e.g. JSON payloads with English field names).
+/// </remarks>
 public sealed class TcknRecognizer : IPiiRecognizer
 {
-    static readonly Regex Rx = new(@"\b[1-9]\d{10}\b", RegexOptions.Compiled);
+    static readonly Regex Rx = new(@"\b[1-9]\d{10}\b", RegexOptions.Compiled, TimeSpan.FromMilliseconds(200));
 
     public IReadOnlyList<PiiHit> Analyze(string text, string lang)
     {
-        if (lang != "tr") return Array.Empty<PiiHit>();
         var list = new List<PiiHit>();
         foreach (Match m in Rx.Matches(text))
         {
-            var v = m.Value;
-            if (IsValid(v))
-                list.Add(new PiiHit("TCKN", m.Index, m.Length));
+            if (IsValid(m.Value))
+                list.Add(new PiiHit(PiiTypes.Tckn, m.Index, m.Length));
         }
         return list;
     }

@@ -1,20 +1,15 @@
 using Devoplus.DataGuardian;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Bind DataGuardian options from the "DataGuardian" section of appsettings.json.
+// (You can also configure inline: builder.Services.AddDataGuardian(o => { o.Action = ActionMode.Tag; });)
+builder.Services.AddDataGuardian(builder.Configuration.GetSection("DataGuardian"));
+
 var app = builder.Build();
 
-var opt = new DataGuardianOptions
-{
-    AnalyzeRequests = true,
-    AnalyzeResponses = true,
-    HeaderPrefix = "X-DataGuardian",
-    Action = ActionMode.Tag,
-    LanguageOverride = "tr",
-    BlockAt = -1,
-    EnableNer = false,
-};
-
-app.UseDataGuardian(opt);
+// Resolves the options registered above.
+app.UseDataGuardian();
 
 app.MapPost("/echo", async (HttpContext ctx) =>
 {
